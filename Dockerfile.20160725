@@ -1,0 +1,50 @@
+FROM ubuntu:14.04
+
+# base -----------------------------------------------------------------
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get install -y ccache curl g++ gfortran git libhdf5-dev
+
+ENV PATH /usr/lib/ccache:$PATH
+
+# python ---------------------------------------------------------------
+RUN apt-get install -y python-pip python-dev
+RUN pip install numpy==1.10.2
+
+# cuda -----------------------------------------------------------------
+WORKDIR /opt/nvidia
+RUN mkdir installers
+
+RUN curl -s -o cuda_7.0.28_linux.run http://developer.download.nvidia.com/compute/cuda/7_0/Prod/local_installers/cuda_7.0.28_linux.run
+
+RUN chmod +x cuda_7.0.28_linux.run && sync && ./cuda_7.0.28_linux.run -extract=`pwd`/installers
+
+RUN ./installers/NVIDIA-Linux-x86_64-346.46.run -s -N --no-kernel-module && \
+    ./installers/cuda-linux64-rel-7.0.28-19326674.run -noprompt && \
+    cd / && \
+    rm -rf /opt/nvidia
+
+ENV CUDA_ROOT /usr/local/cuda
+ENV PATH $PATH:$CUDA_ROOT/bin
+ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:$CUDA_ROOT/lib64
+ENV CPATH $CPATH:$CUDA_ROOT/include
+
+# cudnn -----------------------------------------------------------------
+ENV CUDNN_VERSION 3
+ENV CUDNN_DOWNLOAD_SUM 98679d5ec039acfd4d81b8bfdc6a6352d6439e921523ff9909d364e706275c2b
+
+RUN curl -fsSL http://developer.download.nvidia.com/compute/redist/cudnn/v3/cudnn-7.0-linux-x64-v3.0-prod.tgz -O && \
+    echo "$CUDNN_DOWNLOAD_SUM  cudnn-7.0-linux-x64-v3.0-prod.tgz" | sha256sum -c --strict - && \
+    tar -xzf cudnn-7.0-linux-x64-v3.0-prod.tgz -C /usr/local --wildcards 'cuda/*' && \
+    rm cudnn-7.0-linux-x64-v3.0-prod.tgz && \
+    ldconfig
+
+# chainer ---------------------------------------------------------------
+RUN pip install cython
+
+ENV LIBRARY_PATH $LIBRARY_PATH:$CUDA_ROOT/lib64
+RUN pip install chainer==1.5.1
+
+# Misc ------------------------------------------------------------------
+RUN apt-get -y update
+RUN apt-get install -y libfreetype6-dev libxft-dev python-gtk2-dev gfortran swig liblapack-dev libatlas-base-dev libopenblas-base
+RUN pip install jupyter Pillow matplotlib scipy scikit-learn pandas
