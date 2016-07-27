@@ -1,3 +1,7 @@
+sample/
+caffe/
+
+
 ### https://raw.github.com/github/gitignore/fe0df6046b81b6008be66b09b874653055148483/python.gitignore
 
 # Byte-compiled / optimized / DLL files
